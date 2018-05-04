@@ -1,0 +1,46 @@
+Terraform DigitalOcean Ruby
+
+Overview
+
+Bring up a centos host
+Hacking on centos to get ruby installed
+
+Bring up a centos host
+
+ssh-keygen -q -b 2048 -t rsa -N '' -f id_rsa
+export TF_VAR_do_token="$(lpass show --notes do_token)"
+terraform init
+terraform plan
+terraform apply -auto-approve
+terraform state show digitalocean_droplet.web
+ip=$(terraform state show digitalocean_droplet.web | awk '/ipv4_address/ { print $NF }')
+ssh-keyscan $ip >> ~/.ssh/known_hosts
+ssh -i id_rsa root@$ip
+terraform destroy -force
+
+Hacking on centos to get ruby installed
+
+Todo: Submit an issue because bundler isn't installed by default even though it says it is
+
+https://www.softwarecollections.org/en/scls/rhscl/rh-ruby24/
+
+Note: Need to install rh-ruby24 after centos-release, they won't work together
+
+yum install -y centos-release-scl
+yum install -y rh-ruby24
+scl enable rh-ruby24 bash
+gem install bundler
+
+https://stackoverflow.com/questions/16261100/cant-download-github-project-with-curl-command
+
+curl -Ls https://api.github.com/repos/mbigras/someapp/tarball > app.tar.gz
+tar xvf app.tar.gz
+mv mbigras* app
+
+http://sinatrarb.com/configuration.html
+
+bundle install
+APP_ENV=prod bundle exec ruby app.rb
+
+curl $ip:4567
+
