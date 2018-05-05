@@ -1,11 +1,42 @@
 Terraform DigitalOcean Ruby err... Docker
 
+todo: finish app bootup steps
+
 Overview
 
+Bring up centos host then install Docker with Ansible
 Bring up a centos host
 Hacking on centos to get ruby installed
 Install ruby with ansible
 Using Docker instead hack session
+
+Bring up centos host then install Docker with Ansible
+
+curl -s -X GET -H "Content-Type: application/json" -H "Authorization: Bearer $(lpass show --notes do_token)" "https://api.digitalocean.com/v2/droplets?page=1&per_page=1" | jq '.droplets | length'
+
+ssh-keygen -q -b 2048 -t rsa -N '' -f id_rsa
+export TF_VAR_do_token="$(lpass show --notes do_token)"
+terraform init
+terraform plan
+terraform apply -auto-approve
+terraform state show digitalocean_droplet.web
+ip=$(terraform state show digitalocean_droplet.web | awk '/ipv4_address/ { print $NF }')
+echo $ip > hosts
+ssh-keyscan $ip >> ~/.ssh/known_hosts
+ansible all -m ping
+ansible-playbook playbook.yml
+ssh -i id_rsa root@$ip
+terraform destroy -force
+
+curl -Ls https://api.github.com/repos/mbigras/someapp/tarball > app.tar.gz
+tar xvf app.tar.gz
+mv mbigras* app
+
+docker build --tag someapp .
+docker run -itd --name someapp -p 4567:4567 -e APP_ENV=prod someapp
+docker exec someapp bundle exec ruby app.rb
+
+todo: finish app bootup steps
 
 Using Docker instead hack session
 
