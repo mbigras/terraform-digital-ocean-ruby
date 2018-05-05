@@ -1,9 +1,94 @@
-Terraform DigitalOcean Ruby
+Terraform DigitalOcean Ruby err... Docker
 
 Overview
 
 Bring up a centos host
 Hacking on centos to get ruby installed
+Install ruby with ansible
+Using Docker instead hack session
+
+Using Docker instead hack session
+
+The following packages have pending transactions: docker-x86_64 error
+
+https://stackoverflow.com/questions/42038633/ansible-yum-module-pending-transactions-error
+
+ansible all -m shell -a 'yum-complete-transaction --cleanup-only'
+
+https://stackoverflow.com/questions/42040688/docker-daemon-start-using-ansible
+
+https://docs.docker.com/install/linux/docker-ce/centos/#install-docker-ce
+
+https://serverfault.com/questions/542910/adding-a-user-to-an-additional-group-using-ansible
+
+ansible all -a "docker run hello-world" -u appuser
+
+Again
+
+terraform apply -auto-approve
+
+ip=$(terraform state show digitalocean_droplet.web | awk '/ipv4_address/ { print $NF }')
+ssh-keyscan $ip >> ~/.ssh/known_hosts
+echo $ip > hosts
+ansible -m ping all
+ansible-playbook playbook.yml
+
+running into a problem with adding the docker-ce repository, starting to think about connecting my ansible playbook to Docker to test locally
+
+seems like the repos are text files that go in /etc/yum.repos.d/ I think my format to yum_repository module was wrong
+
+Compare these two
+
+  # - name: Add Docker CE stable repository
+  #   yum_repository:
+  #     name: docker-ce.repo
+  #     description: Docker CE stable repository
+  #     baseurl: https://download.docker.com/linux/centos/
+
+  - name: Add Docker Repository
+    yum_repository:
+      name: docker-ce
+      description: Docker CE Stable
+      baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+      gpgkey: https://download.docker.com/linux/centos/gpg
+      gpgcheck: yes
+
+Approach was to use 
+
+https://docs.docker.com/install/linux/docker-ce/centos/#set-up-the-repository
+
+yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+
+Then look inside /etc/yum.repos.d/ and see the format of the arguments that I needed to pass to yum_repository module
+
+ansible all -u appuser -a 'docker run hello-world'
+
+Install ruby with ansible
+
+ssh-keygen -q -b 2048 -t rsa -N '' -f id_rsa
+export TF_VAR_do_token="$(lpass show --notes do_token)"
+terraform init
+terraform plan
+terraform apply -auto-approve
+
+ip=$(terraform state show digitalocean_droplet.web | awk '/ipv4_address/ { print $NF }')
+ssh-keyscan $ip >> ~/.ssh/known_hosts
+echo $ip > hosts
+ansible -m ping all
+
+ssh -i id_rsa appuser@$ip
+terraform destroy -force
+
+https://docs.ansible.com/ansible/2.4/gem_module.html
+
+TASK [Install Bundler gem] *********************************************************************************************************************************************************************************
+fatal: [159.89.159.218]: FAILED! => {"changed": false, "cmd": "/opt/rh/rh-ruby24/root/usr/bin/gem query -n '^bundler$'", "msg": "/opt/rh/rh-ruby24/root/usr/bin/ruby: error while loading shared libraries: libruby.so.2.4: cannot open shared object file: No such file or directory", "rc": 127, "stderr": "/opt/rh/rh-ruby24/root/usr/bin/ruby: error while loading shared libraries: libruby.so.2.4: cannot open shared object file: No such file or directory\n", "stderr_lines": ["/opt/rh/rh-ruby24/root/usr/bin/ruby: error while loading shared libraries: libruby.so.2.4: cannot open shared object file: No such file or directory"], "stdout": "", "stdout_lines": []}
+
+Feeling alot of pain because I don't want to wait for ruby-install to build ruby from scratch but the gem command with software collections isn't working.
+
+Let's skip to using Docker
 
 Bring up a centos host
 
