@@ -1,0 +1,49 @@
+---
+- hosts: all
+  tasks:
+
+  - name: Create application user
+    user:
+      name: appuser
+
+  - name: Set application user authorized_keys file
+    authorized_key:
+      user: appuser
+      state: present
+      key: "{{ lookup('file', playbook_dir + '/id_rsa.pub') }}"
+
+  - name: Install yum_repository deps
+    yum:
+      name:
+        - yum-utils
+        - device-mapper-persistent-data
+        - lvm2
+
+  - name: Add Docker Repository
+    yum_repository:
+      name: docker-ce
+      description: Docker CE Stable
+      baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+      gpgkey: https://download.docker.com/linux/centos/gpg
+      gpgcheck: yes
+
+  - name: Install Docker
+    yum:
+      name: docker-ce
+
+  - name: Ensure group "docker" exists
+    group:
+      name: docker
+      state: present
+
+  - name: Add appuser to docker group
+    user:
+      name: appuser
+      groups: docker
+      append: yes
+
+  - name: Start service docker, if not running
+    service:
+      name: docker
+      state: started
+
